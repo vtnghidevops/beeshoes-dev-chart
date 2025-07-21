@@ -1,0 +1,12 @@
+dependencies:
+- name: beeshoes-fe
+  repository: file://charts/beeshoes-fe
+  version: 1.0.0
+- name: beeshoes-be
+  repository: file://charts/beeshoes-be
+  version: 1.0.0
+- name: beeshoes-db
+  repository: file://charts/beeshoes-db
+  version: 1.0.0
+digest: sha256:8339511e73e1e6929497e636fe67faf2dc62178f5e12d1478ecdbcfb52ec1efe
+generated: "2025-07-21T07:07:07.659277418Z"
