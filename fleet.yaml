@@ -2,8 +2,8 @@ namespace: beeshoes-dev
 
 helm:
   releaseName: beeshoes-app-dev
-  chart: ./
+  chart: beeshoes
   version: 0.1.0
   timeoutSeconds: 300
   valuesFiles:
-    - ./dev-values.yaml
+    - ./beeshoes/dev-values.yaml
