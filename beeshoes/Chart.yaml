@@ -4,3 +4,13 @@ description: A Helm chart for BeeShoes Development Environment
 type: application
 version: 1.0.0
 appVersion: "v1.0.0"
+dependencies:
+  - name: beeshoes-fe
+    version: 1.0.0
+    repository: "file://charts/beeshoes-fe"
+  - name: beeshoes-be
+    version: 1.0.0
+    repository: "file://charts/beeshoes-be"
+  - name: beeshoes-db
+    version: 1.0.0
+    repository: "file://charts/beeshoes-db"
