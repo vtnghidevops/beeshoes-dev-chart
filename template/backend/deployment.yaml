@@ -1,0 +1,68 @@
+{{- if .Values.backend.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: beeshoes-be-deployment
+  namespace: {{ include "beeshoes-app.namespace" . }}
+  labels:
+    {{- include "beeshoes-app.backend.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "beeshoes-app.backend.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: {{ .Values.backend.strategy.type }}
+    rollingUpdate:
+      maxUnavailable: {{ .Values.backend.strategy.rollingUpdate.maxUnavailable }}
+      maxSurge: {{ .Values.backend.strategy.rollingUpdate.maxSurge }}
+  template:
+    metadata:
+      labels:
+        {{- include "beeshoes-app.backend.selectorLabels" . | nindent 8 }}
+        {{- with .Values.backend.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- include "beeshoes-app.imagePullSecrets" . | nindent 6 }}
+      # Wait for database to be ready
+      initContainers:
+        - name: wait-for-database
+          image: busybox:1.35
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for MariaDB to be ready..."
+              until nc -z {{ include "beeshoes-app.database.serviceName" . }} {{ .Values.mariadb.service.port }}; do
+                echo "Waiting for database..."
+                sleep 3
+              done
+              echo "Database is ready!"
+      containers:
+        - name: beeshoes-be
+          image: {{ include "beeshoes-app.backend.image" . }}
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.backend.containerPort }}
+              name: tcp
+              protocol: TCP
+          {{- include "beeshoes-app.backend.resources" . | nindent 10 }}
+          {{- include "beeshoes-app.backend.livenessProbe" . | nindent 10 }}
+          {{- include "beeshoes-app.backend.readinessProbe" . | nindent 10 }}
+          {{- include "beeshoes-app.backend.startupProbe" . | nindent 10 }}
+          # Environment variables from Secret
+          envFrom:
+            - secretRef:
+                name: {{ include "beeshoes-app.backend.secretName" . }}
+          # Mount application.properties from ConfigMap
+          volumeMounts:
+            - name: beeshoes-be-application-properties-config-volume
+              mountPath: /run/src/main/resources/application.properties
+              subPath: application.properties
+      volumes:
+        - name: beeshoes-be-application-properties-config-volume
+          configMap:
+            defaultMode: 420  # rw-r--r--
+            name: {{ include "beeshoes-app.backend.configMapName" . }}
+{{- end }} 

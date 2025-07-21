@@ -1,0 +1,11 @@
+apiVersion: fleet.cattle.io/v1alpha1
+kind: GitRepo
+metadata:
+  name: beeshoes-dev
+  namespace: fleet-local
+spec:
+  repo: git@github.com:vtnghidevops/beeshoes-dev-chart.git
+  branch: main
+  clientSecretName: fleet-ssh-key
+  paths:
+    - ./

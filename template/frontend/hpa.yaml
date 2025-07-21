@@ -1,0 +1,17 @@
+{{- if and .Values.frontend.enabled .Values.frontend.autoscaling.enabled }}
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: beeshoes-fe-hpa
+  namespace: {{ include "beeshoes-app.namespace" . }}
+  labels:
+    {{- include "beeshoes-app.frontend.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: beeshoes-fe-deployment
+  minReplicas: {{ .Values.frontend.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.frontend.autoscaling.maxReplicas }}
+  targetCPUUtilizationPercentage: {{ .Values.frontend.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}

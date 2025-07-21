@@ -1,0 +1,17 @@
+{{- if .Values.frontend.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "beeshoes-app.frontend.serviceName" . }}
+  namespace: {{ include "beeshoes-app.namespace" . }}
+  labels:
+    {{- include "beeshoes-app.frontend.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "beeshoes-app.frontend.selectorLabels" . | nindent 4 }}
+  ports:
+    - protocol: TCP
+      port: {{ .Values.frontend.service.port }}
+      targetPort: {{ .Values.frontend.service.targetPort }}
+  type: {{ .Values.frontend.service.type }}
+{{- end }} 

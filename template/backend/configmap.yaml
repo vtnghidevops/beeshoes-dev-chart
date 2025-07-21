@@ -1,0 +1,50 @@
+{{- if .Values.backend.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "beeshoes-app.backend.configMapName" . }}
+  namespace: {{ include "beeshoes-app.namespace" . }}
+  labels:
+    {{- include "beeshoes-app.backend.labels" . | nindent 4 }}
+data:
+  application.properties: |
+    # Database configuration
+    spring.datasource.url=${DB_URL}
+    spring.datasource.username=${DB_USERNAME}
+    spring.datasource.password=${DB_PASSWORD}
+    spring.datasource.driverClassName={{ .Values.backend.config.spring.datasource.driverClassName }}
+    spring.datasource.sql-script-encoding={{ .Values.backend.config.spring.datasource.sqlScriptEncoding }}
+    spring.jpa.properties.hibernate.globally_quoted_identifiers={{ .Values.backend.config.spring.jpa.properties.hibernate.globallyQuotedIdentifiers }}
+    spring.jpa.hibernate.ddl-auto={{ .Values.backend.config.spring.jpa.hibernate.ddlAuto }}
+    spring.jpa.show-sql={{ .Values.backend.config.spring.jpa.showSql }}
+    spring.jpa.properties.hibernate.format_sql={{ .Values.backend.config.spring.jpa.properties.hibernate.formatSql }}
+
+    # Cloudinary configuration
+    cloudinary.cloud-name=${CLOUDINARY_NAME}
+    cloudinary.api-key=${CLOUDINARY_API_KEY}
+    cloudinary.api-secret=${CLOUDINARY_API_SECRET}
+    spring.servlet.multipart.max-file-size={{ .Values.backend.config.spring.servlet.multipart.maxFileSize }}
+    spring.servlet.multipart.max-request-size={{ .Values.backend.config.spring.servlet.multipart.maxRequestSize }}
+
+    # Email configuration
+    spring.mail.host=${MAIL_HOST}
+    spring.mail.port=${MAIL_PORT}
+    spring.mail.username=${MAIL_USERNAME}
+    spring.mail.password=${MAIL_PASSWORD}
+    spring.mail.properties.mail.transport.protocol={{ .Values.backend.config.spring.mail.properties.mail.transport.protocol }}
+    spring.mail.properties.mail.smtp.port={{ .Values.backend.config.spring.mail.properties.mail.smtp.port }}
+    spring.mail.properties.mail.smtp.auth={{ .Values.backend.config.spring.mail.properties.mail.smtp.auth }}
+    spring.mail.properties.mail.smtp.starttls.enable={{ .Values.backend.config.spring.mail.properties.mail.smtp.starttls.enable }}
+    spring.mail.properties.mail.smtp.starttls.required={{ .Values.backend.config.spring.mail.properties.mail.smtp.starttls.required }}
+    spring.mail.properties.mail.smtp.ssl.trust={{ .Values.backend.config.spring.mail.properties.mail.smtp.ssl.trust }}
+
+    # Application configuration
+    domain.client=${CLIENT_DOMAIN}
+    spring.jpa.properties.hibernate.jdbc.time_zone={{ .Values.backend.config.spring.jpa.properties.hibernate.jdbcTimeZone }}
+
+    # Excel/JXLS configuration
+    jxls.template.path={{ .Values.backend.config.jxls.template.path }}
+    jxls.template.output.path={{ .Values.backend.config.jxls.template.output.path }}
+    spring.jpa.properties.hibernate.jdbc.batch_size={{ .Values.backend.config.spring.jpa.properties.hibernate.jdbcBatchSize }}
+    spring.jpa.properties.hibernate.order_inserts={{ .Values.backend.config.spring.jpa.properties.hibernate.orderInserts }}
+{{- end }} 

@@ -1,0 +1,24 @@
+{{- if and .Values.mariadb.enabled .Values.mariadb.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "beeshoes-app.database.pvcName" . }}
+  namespace: {{ include "beeshoes-app.namespace" . }}
+  labels:
+    {{- include "beeshoes-app.database.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    {{- range .Values.mariadb.persistence.accessModes }}
+    - {{ . | quote }}
+    {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.mariadb.persistence.size | quote }}
+  {{- if .Values.mariadb.persistence.storageClass }}
+  {{- if (eq "-" .Values.mariadb.persistence.storageClass) }}
+  storageClassName: ""
+  {{- else }}
+  storageClassName: {{ .Values.mariadb.persistence.storageClass | quote }}
+  {{- end }}
+  {{- end }}
+{{- end }} 

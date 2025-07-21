@@ -1,0 +1,6 @@
+apiVersion: v2
+name: beeshoes-app-dev
+description: A Helm chart for BeeShoes Development Environment
+type: application
+version: 1.0.0
+appVersion: "v1.0.0"

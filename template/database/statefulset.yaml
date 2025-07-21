@@ -1,0 +1,80 @@
+{{- if .Values.mariadb.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: beeshoes-db
+  namespace: {{ include "beeshoes-app.namespace" . }}
+  labels:
+    {{- include "beeshoes-app.database.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "beeshoes-app.database.serviceName" . }}
+  replicas: {{ .Values.mariadb.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "beeshoes-app.database.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "beeshoes-app.database.selectorLabels" . | nindent 8 }}
+        {{- with .Values.mariadb.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      containers:
+      - name: beeshoes-db
+        image: {{ include "beeshoes-app.database.image" . }}
+        imagePullPolicy: {{ .Values.mariadb.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.mariadb.containerPort }}
+          name: tcp
+          protocol: TCP
+        env:
+        - name: MARIADB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "beeshoes-app.database.secretName" . }}
+              key: DB_ROOT_PASSWORD
+        - name: MARIADB_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "beeshoes-app.database.secretName" . }}
+              key: DB_INIT_DATABASE
+        - name: MARIADB_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "beeshoes-app.database.secretName" . }}
+              key: DB_USERNAME
+        - name: MARIADB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "beeshoes-app.database.secretName" . }}
+              key: DB_PASSWORD
+        - name: MARIADB_EXTRA_FLAGS
+          value: {{ .Values.mariadb.extraFlags | quote }}
+        {{- include "beeshoes-app.database.livenessProbe" . | nindent 8 }}
+        {{- include "beeshoes-app.database.readinessProbe" . | nindent 8 }}
+        {{- include "beeshoes-app.database.resources" . | nindent 8 }}
+        volumeMounts:
+        - name: beeshoes-db-volume
+          mountPath: {{ .Values.mariadb.persistence.mountPath }}
+      volumes:
+      - name: beeshoes-db-volume
+        {{- if .Values.mariadb.persistence.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ include "beeshoes-app.database.pvcName" . }}
+        {{- else }}
+        emptyDir: {}
+        {{- end }}
+      {{- with .Values.mariadb.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.mariadb.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.mariadb.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }} 

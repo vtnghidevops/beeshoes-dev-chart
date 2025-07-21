@@ -1,0 +1,39 @@
+{{- if .Values.frontend.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: beeshoes-fe-deployment
+  namespace: {{ include "beeshoes-app.namespace" . }}
+  labels:
+    {{- include "beeshoes-app.frontend.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.frontend.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "beeshoes-app.frontend.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: {{ .Values.frontend.strategy.type }}
+    rollingUpdate:
+      maxUnavailable: {{ .Values.frontend.strategy.rollingUpdate.maxUnavailable }}
+      maxSurge: {{ .Values.frontend.strategy.rollingUpdate.maxSurge }}
+  template:
+    metadata:
+      labels:
+        {{- include "beeshoes-app.frontend.selectorLabels" . | nindent 8 }}
+        {{- with .Values.frontend.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- include "beeshoes-app.imagePullSecrets" . | nindent 6 }}
+      containers:
+        - name: beeshoes-fe
+          image: {{ include "beeshoes-app.frontend.image" . }}
+          imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.frontend.containerPort }}
+              name: tcp
+              protocol: TCP
+          {{- include "beeshoes-app.frontend.resources" . | nindent 10 }}
+          {{- include "beeshoes-app.frontend.livenessProbe" . | nindent 10 }}
+          {{- include "beeshoes-app.frontend.readinessProbe" . | nindent 10 }}
+{{- end }} 

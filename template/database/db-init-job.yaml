@@ -1,0 +1,89 @@
+{{- if and .Values.mariadb.enabled .Values.mariadb.dbInit.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "beeshoes-app.database.initJobName" . }}
+  namespace: {{ include "beeshoes-app.namespace" . }}
+  labels:
+    {{- include "beeshoes-app.database.labels" . | nindent 4 }}
+    app.kubernetes.io/component: db-init
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "{{ .Values.mariadb.dbInit.hookWeight | default "1" }}"
+    "helm.sh/hook-delete-policy": {{ .Values.mariadb.dbInit.hookDeletePolicy | default "before-hook-creation,hook-succeeded" }}
+    {{- if .Values.mariadb.dbInit.annotations }}
+    {{- toYaml .Values.mariadb.dbInit.annotations | nindent 4 }}
+    {{- end }}
+spec:
+  backoffLimit: {{ .Values.mariadb.dbInit.backoffLimit | default 3 }}
+  ttlSecondsAfterFinished: {{ .Values.mariadb.dbInit.ttlSecondsAfterFinished | default 3600 }}
+  {{- if .Values.mariadb.dbInit.activeDeadlineSeconds }}
+  activeDeadlineSeconds: {{ .Values.mariadb.dbInit.activeDeadlineSeconds }}
+  {{- end }}
+  template:
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: {{ .Values.mariadb.dbInit.restartPolicy | default "OnFailure" }}
+      
+      # InitContainer to wait for database readiness
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.36
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waiting for MariaDB service to be available..."
+              until nc -z $DB_HOST 3306; do
+                echo "MariaDB is not ready yet. Waiting 10 seconds..."
+                sleep 10
+              done
+              echo "MariaDB service is available!"
+              
+              echo "Waiting for MariaDB to accept connections..."
+              # Additional check for MySQL protocol readiness (requires mysql client)
+              # Since busybox doesn't have mysql client, we'll just wait a bit more
+              sleep 30
+              echo "Database should be ready for connections"
+          env:
+            - name: DB_HOST
+              value: {{ include "beeshoes-app.database.serviceName" . | quote }}
+      
+      containers:
+        - name: init-beeshoes-db
+          image: {{ include "beeshoes-app.database.initImage" . }}
+          imagePullPolicy: {{ .Values.mariadb.dbInit.image.pullPolicy | default "IfNotPresent" }}          
+          env:
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "beeshoes-app.database.secretName" . }}
+                  key: DB_HOST
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "beeshoes-app.database.secretName" . }}
+                  key: DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "beeshoes-app.database.secretName" . }}
+                  key: DB_PASSWORD
+            - name: DB_INIT_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "beeshoes-app.database.secretName" . }}
+                  key: DB_INIT_DATABASE
+          {{- if .Values.mariadb.dbInit.livenessProbe.enabled }}
+          livenessProbe:
+            {{- omit .Values.mariadb.dbInit.livenessProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          
+          {{- if .Values.mariadb.dbInit.readinessProbe.enabled }}
+          readinessProbe:
+            {{- omit .Values.mariadb.dbInit.readinessProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+{{- end }} 

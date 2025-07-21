@@ -1,0 +1,357 @@
+# BeeShoes Development Environment Configuration
+# 1 pod for frontend and backend
+
+global:
+  imageRegistry: "tannghidevops"
+  imagePullSecrets:
+  - name: dockerhub-secret
+  namespace: beeshoes-dev
+
+  labels:
+    app.kubernetes.io/name: beeshoes-app
+    app.kubernetes.io/instance: "dev"
+    app.kubernetes.io/part-of: beeshoes-ecommerce
+    environment: development
+
+# ==============================================
+# FRONTEND TIER - React Application (DEV)
+# ==============================================
+frontend:
+  enabled: true
+
+  image:
+    repository: beeshoes
+    tag: "frontend-v1.0.1"
+    pullPolicy: Always
+
+  # Development: 1 pod
+  replicaCount: 1
+  revisionHistoryLimit: 2
+
+  containerPort: 80
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+
+  # Minimal resources for development
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+    name: beeshoes-fe-service
+
+  ingress:
+    enabled: true
+    className: "traefik"
+    host: "beeshoes-dev.devops.vn"
+    path: "/"
+    pathType: "Prefix"
+
+  # Health checks for development
+  livenessProbe:
+    httpGet:
+      path: /
+      port: 80
+    initialDelaySeconds: 20
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 5
+
+  readinessProbe:
+    httpGet:
+      path: /
+      port: 80
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  # Disable auto-scaling for development
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 2
+    targetCPUUtilizationPercentage: 80
+
+  podAnnotations: {}
+  podLabels:
+    environment: development
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ==============================================
+# BACKEND TIER - Spring Boot API (DEV)
+# ==============================================
+backend:
+  enabled: true
+
+  image:
+    repository: beeshoes
+    tag: "backend-v1.0.0"
+    pullPolicy: Always
+
+  # Development: 1 pod
+  replicaCount: 1
+  revisionHistoryLimit: 2
+
+  containerPort: 8080
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+
+  ingress:
+    enabled: true
+    className: "traefik"
+    host: "api-beeshoes-dev.devops.vn"
+    path: "/"
+    pathType: "Prefix"
+
+  # Minimal resources for development
+  resources:
+    requests:
+      cpu: 200m
+      memory: 250Mi
+    limits:
+      cpu: 250m
+      memory: 500Mi
+
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+    name: beeshoes-be-service
+
+  # # Development secrets (will be overridden by GitHub Actions)
+  # secrets:
+  #   database:
+  #     url: "AgCoFSlYyltqxRkyuXzDQy/oK1f3UfJHzTWPadbEZ+JcAxpfZAngIyYsNfi5pbvdpm3KxTeoCQ3Y913z3YaivR1Hr93SkPb1rRR+7BfRCZwWrm4GSpNkfWaIhzUU7gmJnGoAYRbGjPMy/YQ3gkfLWRftQ8YAjypHjk1+jTInERxmCtnQMmc0gElWRBI3UXwef38ZDxZ34oN/Z+R1qnjwUzpqr1JyaWmwn9L+ih9ZgvRw9N1S3ZJoD616RpCzdtwMItYmz9o/VUhQkVhuoh3szVjO0Yqn4ohS66gdrELcJfo+vEfByffIPrXR7gTjq6TDFTaQWu3UWrMYOWiHl9mD+4wH6gjo6fr7NAhtuEBZvFMySIDWDyY3GFEYGPrkitelxIHDN2/APGK+FBhbSt+Kwr4kmSXKxV2v0WASFDB63f4Gv6fCIM1CiJ9u8E3ziEDyobKhEGo9YcgYNamDWHPTxLR+MbMozu6+p56wgWiIeDD2So01QTh03HLXqCf3LmdlnrAPg9e2ym+UCY7SDzq7byorWR35I8O16r8C9sGZKWb7JswgU1Ul0Hpa5g7IJgv5/B5WQ41nSzJd1Ep6Z1PNtWS6lpSphWyz2iDgn0FqWNWxRQnD5qkDNn1ckfFZr1ULdY7ig/UhYKFblYDlpGokRWoER9xsxtt6rP/fm00vjpF9yqTSggc0N5s21OOS4tFBbSu6M1Z6GWguPh1cDo7uFZkl5mBNFzgko3YYr6GE1vGkMbYgkHw/ompccBAwGnIA2Y8="
+  #     username: "AgBKIYRhdrrAZmY5ocjncLcyQ+c72NHPfkMseq+oQbgph60nxj7L3i1KS8N7vMvpvgsgOxeSvcCw/qB2zE0HwDaVXzfLMe3TnDd77UL9LlLaQ2+ud8h13AlYGb0wVXBHDhgEnZ5Fix13vm5ly60x7r42tusG341BbTRSjaYE0pglien+EJWIqjXYqCnNqH82WRIi6nu9Juymxl8oubO0y80D7wBTwzxR0a2IQOwgIkhh0GCfEwuUS5EPRRge4F6C8oF3HcQGOY/3w4nuIpngTGclHDcpglJAu0TQRiqwq6jdYxpG0x7chlQNwOhgxOQt6lH/cOeJbuIqkNyZhREcPiIJKhOAx/jMG0jZ4oDE3O2W8mR5Py1BEAVHFVLe5i6AduaeLWR0GH0RwQ1EyV9FHtMGtJOn/SeLuQg0vTAN1CAJpCLzWQWXPKOEBDTW6z7UxDKtLGi/M1evHDH4u9AAz4hlkCRAge9SsasyXzfkpfgUCoQaxI1BwfKLnDm9H54eEZnxWplF8kOhCdXuJBueObemHupyDw3G+NGwzM/vG8e3fS2k1jjTJWDFBmkKwWq++/emQpu98Zb/kFwn1v5+Mj/AU+bx+sf1pe+WPIzSDHXrRaWEch4lgivFZw20NRgYDIqCl/dX1Rsv/z0JA/AEQHiYbxb6HbKEzjmEsggSB8FNtg0Zg1MUnRR6ywyCF2ak/KW21Nvytj2WUA=="
+  #     password: "AgAPtH9xdq6+ewAkjzVbfrnF967UV75qCDe3FtR2exz6quSIz7w9RiBzv0QLCyDkSVTcA5LghVkFQc/i7Ec3tZMlAsUHyMshWTSfvkQQBdcR/3J+83Ss+pfDsuFKN22HsBuSu+iL6U7D+3jxwmiA+gF6Mu6UzZ03D4vIDV5/Rh23o+VLjpV9k/p+xwzHS5TkTPw7KwgoVe6GRHGuydVUE7EgNyR47PiL7jMoKUbgWVEX1P3hlAuSfatHebQiSHLYXJdN7tlnuurXMoa6d2YQHYzQB/ZUQ7brSHVi0/LpA0wEVGtSKsMrMQbCd1f+7WzkSUBnX7FX+sDTebpbmQyke2ZThw0dQaicryv+3TI08rvFTy/F9ng794/wAIOTlFKxQUcE/U+ksaUt9qRMKqomC3nIjGqnBUg55nkeVsQWjUK2AoNrBtH9gQWNq/Wz8mUHnnT+32QFcDFOdK5H8d++uABdbMHusyoCisLoDy2RmWQLBiuwd4JbVWE2i+9POAZTug9L3eRliEN3AiHzyd8cd4ZmC3mh6k9KMTui88q8Zk1bq1D/SA9FYL+Pb+2S020O+rxXP9kzgmuC52jKYSLeCIPcvwneTqZzORPenaL3hb/GlwSzQUp/hAMPy/odIQj0mqtSMyNnbmTpPuc8fs76Nd5EQskqnqnKIAKTAO47frZ8QJ74Z/MpjpTexCjiegdjvTzA+TM7o72D/xTspCaqlw=="
+  #     initDatabase: "AgCswU+Z/qCk5tw6SAfd49zyGFCOU55voI2MdL+hLc6Nb7P25mxuHkPKLkuZQ7rJRX9okQSZ2iqb92jDsFvDUx9VzbBps95k41Qup7UU9DnoWmgR67gY5sI0sQnY8K2X3tWidXt91KCYfETmISb1qi55dg/+Nn6DMl2WZO0wlvPUnx+il704jpODmjFxbX3IUf85b+RspEhDk1xHhyinBVV9jl07uE3QUD6DuUB7s0TOd1K/qidXqDF6sR+WD4uV4FutBlCUdIRtf0zGofMxIdXnNLjp6229RuTOCO1Xn6OVlrHDaSoYybqbUWY3e01yUiu13STWRlAB5Z967lxvRpj7OcLfagGhE8YsZw+VzvnYFjNRzAoX3FmfXlWOdMgf3qg39ITwZEgaewVMCYtxgJgRYDHVN9WEJjnRj4ESpyd6mc7Cz/t5GWJLqdv61DxZO0/+1AAVOjlW1ccilrtZYTdAYUvKnEY1YOSVruvhKstHVJsiH4x2VVVhWdlAq4TI89TQDyfbsEObSvcHT89/pl9OjB3IBm/u7/FCR5E9DRLwalZyeYI5soHFKbxLgBCRjKBCz8stfyhwYynrNNqNk01/5Qo4n5eHpMKlThij5Z+Qd185R2/3JZyHp1N+YVVqIdMJfFFGq7IMSBahzAw6nC3hmh/lKgYe7kF+fJhZhXLH5nOQ2NFkpHhbJuk4huzpfBRxMre25UYH3g=="
+
+  #   cloudinary:
+  #     name: "AgCAanP9BNmJU+H2H5e3j4UHIKsg2jLGeC5uF5MwYYYhn/MZsvmgbnVHvXs3viRh6VdY2RXZireh8ui4YS6DRGelpu8UDcX78iG25iHa1f43Ni8GCoksIoH0Yc33+/IVY8+GfYBqvCApTqp5iA4qLftPPjhtIrsZD4JimUEjQbUzSJwrOtJmLkgfO9TfdQiDD3g4JKjmZeqir+pbYY9W5MRsi+SBlkY0+sRZqv55M8tb8gnyhlXzYKfgp2dGy4wp7umw2PIV4+mv58zeOJFIJ0HNkMfXLhnJ2Fto77+4cXKt3aLPHqyEDxgk/N+6t03Z9iu2cuabotQkbS4eIx0QElroCcBgryMM+kV+3qNDR30ng9mL1kvsehXycXwl5WZy34ULj/PmreloN7nDFmVa4NTxTx2bBulZQnmMnq+Iv6zd1RIBlOaTKG13YuFrrkJ1V43HRNSNwGzQ3n0qZyuLoLpQWc7N3GSP39QFSCIpcTCDGSfGBStQBm89IdzvuL/o82kB78XYNwBDrRJhkX+RtJT2OOJgrYPef/l776+f4g+3giO1PzDyTiDT7MmLQAr82yj5ZLtPCa061+eow43aGxxhHPMOsGD7Fdb11+AUgvaveiYeTJIsHzV16xWjAdUo2HP6zV/CLYuPVrz9S8/ClyDSI/KvOqYzgHxMToN6xw6mXUV7D2J350hditD48bfxdiI2ikIDQ4vZ8w=="
+  #     apiKey: "AgCec9Vcy909nPsT5Badnaz9vV0ZgBYQtY/K7XmUkSb1jpQ+CYtHlC29hBqk42ozndCk4Wo1TfhMX6gJdBZqwT0gbxBFR7/9OyrTX1AZ7O/zBv6bgbnuPj3HL4R5vJvhnMtCTcjnYeDdv08OD8JYkYsLHvtGQxTjryil48O3ITVGz1I5NJzHsscHE3f9bP9cdKniZ/ZqwRREMrN/gfGkDjIqEA5FZwEjoC049hh/U2Tei1qF+eIh+qa0dy/IsQ9QZ3HcSIs6ciACa9bQoUuvDosPi8woybJCmaFVyy+KgeI5ABcGQz7pbSB7kvmRMbfbP8G2Mwq1o4bid4C/F9+Rmd4vVlqAOZI4AOIojoUqhMZRho2Q+S0rS8zhqPRg7QfrsejeFirj3xzqif9+3qyB0T/uzYxoQa91mfugExPuJQJO9EoV867IvbzX+kEHohuEl7/rD7NHpCARXIeRZLqzg1E2auXVDfw+DdTZNkRVss95lhECb3i3UmJvSWkgFXGJMVm8HYGwxIjd3c43mp7CsXd5OfGMX82zBIopivtoo+1/veDZAY4DsFO2njD4+bRPIciSqPx6VEPsdzy2Fwy6OzW8+aYWZ6YYwC4TSkgMwBtTQOrpYaMbmyJDZD/jzY0ISZIuCLD7zTWlTuMOLfgJXyjWljVqOJe+8iKxQWuDkOtJc/TvndNpUNXpLBcczBDYoP8zDaiXDnU="
+  #     apiSecret: "AgAmycivECjN8kDE/r/rCYviHZrkUfi8LO3hwglFmUULsXb0r4aq5a0Wj78icOF2jsuZn8+K0g+HR15edvA89jBVVb/TCjgVM0TC9jFdZOL8yJ1fND8xOSPTiAwWQYMIs8j7ZhKIp7xpnXItU3/jySxlQRBGI6tTZ8Zlvk6+9EWM0bsvwlhORJlQR78a8fmrG1fl0/KRnUathh/lXy6YKAK6zFNFjHGctvDmemq0ra+kVjqVEfGNFg8WZZj88XUQs0q+LRyz6vYb+BkF1onY/1w4axUiBva5+RDsUVa/cgaUfEBHcPPD84LdE6oEjqtAzZ9eoonVdKyOKmj5ARzUU/0bsjOU4aDz00NFQlTBnlvLyhO0SKSFN+AhvGg9hIpyByahzcW5BYMzmlCfqC7ucerz2fZ+BXviOXifs4vQRHZ4W7S8ogL4nVvCBEUX5WnSJgFKWKnHJmPjoxB56SDFSg2tiv6cFi4d10VZwrxf/MAYnYvApQxstXm/uDMJxA7ECQBmCllG2j6sxuH8SxN/xW792LLLTAF1p5gSC1xZzCSqxm4LHBGg3BimdzFj4sZC6fPKKuZUAlTPEgxujtSVhKn7Ur2QW+ey/xg4TDr9JCHOITCWdLCaffyJiMHD8LprSOq4LlcQO0SRK1ncZabAtdBgqXDBeqcwqSP+d24mg0gEUsfvvCt+H77OFfkfQotKwfZbdEARHSU="
+
+  #   mail:
+  #     host: "AgA7R2pud3VDEpqdj9mE4IblJ787Y0/VVLVMa63WFuzlH1/iyFJkfSm3vs9huytR3+MkAdmwScbbs+KgKM/Qsq4egGy2WhYvc5qZW45+y3ttZd2ASYg7bsUUQ58ZWIXHS4MAP3so/Hbs1Qleu3kRmOQQz89d+30COcEPVJqZ5bDbY6l07TMMTXA+bEiFWsG5vM95RaspSyiA9SsOZg/PitxWHYAxV90Z0oYPWNhQa0RwYb42NBltL4TUs9yDLqrNXd7o1VDRhpJPgsXpx457/RzYSn0AQzdSMWYKfxLVbU7MkEqysgCFxkCr8yyxVdEQE3epzng2Iin+ZdDRMF2HcY4xUq1lFsND1aOz8SXdv3Z95coYH8pBr5H2Ieh0/BTCZ3/wLWY2wzf8BBaNOXjXlZgNSXXtsJYmsBw0OBsy9EfEotPwgzX5VfF3vSxMyBiw/V2kXUPA+TKtFiu1pWdsjr8SqadOxK3VW5nW0xzm82/O/yDpU/pO5eRox0pi3WTdl4CN6+a+2Uzom7JmJIBBG6SBIhp+slAYQEzJQBaMQLqmz91qqF0I154wHOD0O7m1IVgx6iC+tZJ6xQZGTFL2uSUAQz+O9cDHfzYb/hm26e3QhIH2/4sCgs3cYnTKptQBplwQJrvUDLWo3uir5EkB88bgUVg23nAz6e2k4b+mDTMVtK9HrxExKN8tus96PYAtjh6hdXNhAydTcaltvm3oIw=="
+  #     port: "AgAax6BQ8kLxAS9o9Fk4fnS2H1dO9tnEm3u7G0+PN5937YZEkCSygbOWCec60QRd4yC6wEOsS4fjlVpUPG9jLFEikksGSGNXlpqtKg2NsZzTbamZGRoyMRLy5nhApAXQVoV7DmXfA2ZdnVQVKMCqRhImXljhVpP8kQC6BMgrMsZQCHA+OQjtuaQG/WR8fx/aVkcr4ZJZA4GcwqngMC540e8JwwR4xB+PbEUbXQsrmIOM7rS/xTPANMA9PUZBZpwbXDqMVlrAbD0auiY0IqbCadPeAzyd4hYihP1vTzXXRyD1BFZlAexNUcIWA1P/9lY1nsSGh4rrwUTvvZgW7NGIwCZYKZzu8KaoI73kvZA5LgtKJhdsadZYtUWbSARmfZue9u5MhtapyNvruwKcRPwCT0+fI37rldyjZHk1Wlh4oxlsacNBzUHQ0B3zUW9e7+jwXkGurLpakaBQyKmJG6Yta8qv4mQvtbUYCqKbhoivz74y0zNzUK5dbzdinMOPA6spYv6I1/F40Ky5+JEEnOXIXvvWUZD4b4gnpDi1JjzNqNJ4upQokWWlGts9njvyzs37hd4FqkGCT1ree3e8sUB4wErAEFNwvjzXXZM/ZjJjU4UJpUuqGw+RUwZZtwwj4BFGgDdake9MccloSrjH1oA71CKlAQnc5jgF+KyFYbZkD3Fz34pLQz5g7ModNYalXy8eFKCWNnQ="
+  #     username: "AgCiNdnKZCJV9Ks5zDjZTalDFAyTDyt4oJmLVkiy1DHOYBCGeWNUsGOEUXJUrQtHl2sQV0VlwPs711P4mu1+8137ZBwNrr5DfaBnBFKjt90B4AwJDOZI6qrZ+INJsp3+BwBYA9SAbMa5TtHDlArmymLiYDgb/pjGCWubxhcrEZTZsOORKgr+G0fsQOq+DafuPdhp1uCRQug5ZdU1xaONWYsM9lEuLdF9oij/Kq3qVRcB2/V5MyKJD4FZMEiIKet/i0v0td5NIksKhtGI2n92+SAC2SUzxN+EyaAt36v5zOYc596bzWiweBt5+kCFMp/sASvpKMJPEUoMYXrYFoh4uVE7RJraq/mTHb009nYU0VjPIIVUMPKrhFcx9h6tBHw0lTOq/yUx/qludwPqL9KPdCP4qK7nr1+burkmGrMFrX50H7VpRfGqJCObiGDYnM6VuctfmwTq7nO5QycRQF/2YzUe65REcEt8nimU3EYCQWKkoi2v2whpYAYMuRWE98xc2wtJNKxEJ9MXtuAomwkFZfUtG+61jI1usMil7um72AJ1A75sPczazfizqMKQeN6XRpD6M4Jau8j9cR4+0Cr+5ppW0WsFyrpXd+x2zfiHckb+jaN7O8uXtQNlBVdtVgyoCtmdi4tGMXhlza9TCfUqpXnhsg0jRB9rbIngu96eiDTaXt6U7RMAuDDB55m6C+zzGumgC+3HQAEO7dwa2y+n86aRILAIvHa9wQUz"
+  #     password: "AgAWV/EsbCISWC8f0xuNy4u49H5T6HjYYe6cgs5puzVtGvxxlPyVhLrO16Loy6LjilwNSfxLsCwV/4g7gDpo0pwlgEVD2+0KR3HYb9oPCb04L1d1AJsNJYN3/ujegUHbmdZb+UOmKpnlxbCUpH/Hhp1T2akI9sPzXWyJkzdyNlT5sPHy1b5yrd0VTH5F10ftaH34I22NaNf5tEBgPC+i360f2rpxWz/s4AYITjq9CjUEvWovvllgTBDA7zUGiNbG0x9SiDK7dNAAXxF2P0JfFgTWGIcvY+onXWr7v4bPGAvQNfHGC5y0ViNkzEC8267yXsZEJRmwVvHInmNk9hzOSH/yEpq4b57j8zdnf5QXAHe9nbXMcCgnmzHCXRPkypeY2vwCCbd3no2Iu9nRJKsO1E1RZttd88D0qF7BKlY6YZizCfIrHYsqONsKEcefn97EdqlXwtccNBShNDOC2IZx/FrySE+xPJtcJcKYrWcpGyunnqPec+ZyhDKF7IT+hC1PYgP1J0wFQweDMO8bCO+iPDMtKz1+UIRHUzM2fmh+oqYIvJFVk3L9TIUuP+SjPDTE9MwP9404169OPvl3E9kLul7qDVN9PvAmu2eOpBGA7ig8QZwPzp4gmhCTtvzWWrOFFneqe2sp55d355hB/z6eRP/5AlD8k7dnLK7TRzCyse+qCHkQ1ZfB3IsosY6nZNaMbhrgkvPTmSY2eKtp0sxRNmpw"
+
+  #   jwt:
+  #     secret: "AgB9+JMq90RGTXezQUkJ3LkPS5slOZyYU0n7Mg2IWhvuX7sYJEOPFQTCf+9O9/WGkUAgAmWgyrt6bGWTWhwUKY8HfRe4lqpKYd6yLm7a45NwNcdXWuUPrC6uO+qJoZ0SzFqhTB1tIQPd1cOAh6YTMgD8Xgi9gW/JE4qQdxE0d/Y3XpyiitzhqddAxw7v9432wD37BRwubapTmR+9xtmb6fyGUIPp5PPltVYQPNoaybddcPIBRDcyON+Gl7FKklUR3T8u++FG2NURewuZy16IwkNsi6WfEQtpdQEHFeAyOCChncJtV1dj19QWma+CxUkZH3em6bjU/7QwbSRxZ3mvhOMjYkOMrfsT1wsrxBGWGBSBX5dFhRhuF1+af76DWgFsZegujDRw9vvCdANdjecG2XoRQyvIsfB5xWPLBwZwkG6Dh5uHYCtedF1LbRRhSNS9oIwDVuH93T5tgc9Pky2daaZ+RJYkiwuTVOR3R6U+1JuQLZ7e+3LxxRqt5NT5Pz1pCcUR/dGbMun7gr9tr8cMBZL+vCXOCZauFFAQZmC5kJw8EqN/RhOF7hBcArCEyiTJ3G5qRemzl1CEnMO1E1wS3Xim627+yCxY9c3m0N2PssahXQY/XWOc7RuQkZXjYWk/lHJpYNZETv1vm/H4rbdjy1wLhJ8DYmapdE2b4aos9LmhSpCFfTqZLa9EkG1NuZ0Oe/SqwdBxAx/w3Jn0/jczljoUEnwWodE2rXAdxWP5BjlNcmybHSSX31u1jM12iEFY4QnpoT64Ds6vqOIe+3B14OA41RyTi+xSU+pr7kr8salRVJ4B3WiNvWqF"
+
+  #   clientDomain: "AgCeSmUul0i625/Tx/+uPZVIyQ5VFHT9Xi5uV68uYR5VO9fKAcS4CFa/v61wDBCHeoLK6KoBjrg70WLEp0a4t5K7uZPY3UC39GQnOGb5POb8T7p+E3g1bAtSdLeA1zsieQBS31GiINoSoVa+kOUVtUIsWein4OmqpU9Yo/IRzWYgUvFHTBvalsGuY9cJdh/I6pFKF89e+lLf4MxQjd86zH8OTsrtXpHNKqXjwR8zqga5edL/kcVIYtoW452MuO6e36Uhxv7TYStLsRaY/O4Uy477XSiWuuMpnqXPm6IEoImjoLAFwzbrp+WuHr6sB7sd2VLiLj6zMqqMkELfayZuWtaRQr8HYzNuvJoZ8deUbnJO16VVmhuxtyZFrRK1wWWUKrFQbgoosU8P7htk0ZgSdwp9nHU/4FtyZIJeWZ6QPE8zeDVE0vgu7/dkiUnRkTj0HTdLonFmtcSKg0EvkndcNr2JsUG5smObCAzg+HlegR8O6rs/W955P+OUqR9ZFU2VuZkZwPnrfqYlWKyf4rtj5OJvWAoPaBb7MEtjnYndvfBBRcnZVWgjBMQNdTVBUt+xcY7jWmNuoVZPEH0fkCoKBZRPbnoq/soeMXqYWdoUz+4b2KC3dCE0rwWA2GC4KqV2o6kp7e1Tiz9NU7nq5Yd48z/Ev4/a+tGQNKCa8zdNpoVyiVAnsrIsIvyKKD9FpXwXn/Q19tS6+QZgzxe8ULLkrtCjQh1VwGjp0pJEYjj4gA=="
+
+  config:
+    spring:
+      datasource:
+        driverClassName: "org.mariadb.jdbc.Driver"
+        sqlScriptEncoding: "UTF-8"
+      jpa:
+        hibernate:
+          ddlAuto: "update" # Allow schema updates in dev
+        showSql: true
+        properties:
+          hibernate:
+            globallyQuotedIdentifiers: true
+            formatSql: true
+            jdbcTimeZone: "Asia/Ho_Chi_Minh"
+            jdbcBatchSize: 1000
+            orderInserts: true
+      servlet:
+        multipart:
+          maxFileSize: "5MB" # Smaller for dev
+          maxRequestSize: "5MB"
+      mail:
+        properties:
+          mail:
+            transport:
+              protocol: "TLSv1.2"
+            smtp:
+              port: 25
+              auth: true
+              starttls:
+                enable: true
+                required: true
+              ssl:
+                trust: "smtp.gmail.com"
+
+    jxls:
+      template:
+        path: "classpath:jxls/"
+        output:
+          path: "classpath:output/"
+
+  # Relaxed health checks for development
+  livenessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8080
+    initialDelaySeconds: 45
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 5
+
+  readinessProbe:
+    httpGet:
+      path: /actuator/health/readiness
+      port: 8080
+    initialDelaySeconds: 30
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 5
+
+  startupProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8080
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 20
+
+  # Disable auto-scaling for development
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 2
+    targetCPUUtilizationPercentage: 80
+
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+    prometheus.io/path: "/actuator/prometheus"
+
+  podLabels:
+    environment: development
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ==============================================
+# DATABASE TIER - MariaDB (DEV)
+# ==============================================
+mariadb:
+  enabled: true
+  useCustom: true
+
+  image:
+    repository: bitnami/mariadb
+    tag: "11.4.7"
+    pullPolicy: IfNotPresent
+
+  # auth:
+  #   rootPassword: "AgAKpoLMTdH/QaZcrHtNZs6hEcr13etQRzYMjB9+Y8PRtmPmG5POqBaEysSxqUQXB/jW+uKZu21WZNDhutQSXOEEPGddmbI08yeYpJZ7X0/z3xKQ78V+b9unlVBOErJS5VzLL1sPXKlGKhxn6JhcV7q8HN8wP6/fW7lNbLJ0GPzov071XMdYHvXC+xhfHwp61L9PDR7jMeQPOxBSsTF9xNVNuj4E8ab5gDYES3mJIB+uaqwTZrBtUIuqTC9Izbl7m+DjQoU0lJHca0yIk/6Lj9tKThg9Uxw6NLV9TquusZI0RCytQ5AzVCkcDuBVZJFaUAjzksbIlfqrTElnw9r6Z9y0w7skbGmT4UbTDlj2xCL0GrVkpbBeWemwFbw87p+aeyu/S7u+/hPcM71CEN7h5pDWdIZXtqWsHYG+FJ2AXZRSZ/mZq0YjXL5wAcHwtb0M4RvxS3q7wi3oel8+/pA9Fvk5IxNdF71nqmN4oJxRImVmEeIrxwS73WalHRapBgjtJQqVmsNqqlSvIOiiqh3NsrRhWig90oKnSUMO/8UMKwDaOoVzjNz1M9QqFoaIC022QLnUUl8N9I+/xcZu9f3BAOBQYRaM9d2s6aU8hPIkhI7iI654YVFV4XlNS06ZHQtc7FFbKrh9/QRAvytGGVE5Pv4dzTh/kEVkDsBtOB7KsX0P6Nndgtgm4rRmq6QqibBVt7lI7/RwmvxT+NCcN1NLSQ=="
+  #   username: "AgAHSEnL4+WNNgg3NpvrkrQdr58prNc+bCLs2AqXcbaYXw61cTdRYGYwI1i2ZwatFURACyj1MlMxqnSRXgi8wwvTUdNNqLYhARm6/zUdxK2k42Pf4DBQ5m7kz2kmxOBst+AOFYz7uQC7jIgm7DA+58iePnkv5V3/RMd6y+I4u8RwooXQA5hE/7NJFsJDPiGpneIhVhehOdKN0LSMoc7tguydeov+yzWKzPDkTHvq4mqt2qASPIxezH0xnltZtsOUjpjTAge5g8VYU/bqmbISx6lbF0iENLxB2C6Sd1IagWqjAJjgnJm8gSXIq0b8BWdlZKHTjHSL0SHctdnz59hXv8Kp5Q+fsWeQ14W5KhiDepza3pwF9LtiOVjlZDO9i9tWjZiD2oGl/SFN11tSiWwOymree7zpOQIyYOqdqFuAHIGhlow/ToljWxNE5/09BiwTOxRnfyj49/CvKmLhSoNGGJfAHmwUPKET6AfSXstUzVdG25fJAkK1N3YX9rtsHmq9AAMB2v18uHtX8SOW7N8+YHZdiwFYb6KCSBJE9J0vqgoiAUpDNOCVfvTzDM7W5dgDVCmvqk8KUJ06N8sXCHdR9hvHweiJ2z7UX3zFEmZC3+7FJBayTy4MSq1D10QEqEGVU6WHbmUj02+HzIkqbyo1ccTmVZRnGhoN/bbKInfDVrDXS5UC/FhbcD3NX7Wc6VVoLiHGP2YIT/VP2w=="
+  #   password: "AgARbHfPmuSLsWnhZNnh4JRelu2W03jhFNxGZJB9YZz7wxoVwuAOIPKKkXN7pn4JSYeXrP00+2aR0Ro0aQv+bXjP9jCjEQYI6UBHya8qnbj2q1sR7pU0onJgaJCkZCobcKNGH3MrZVGDEhV3ZDvphBip4Jue0le3xwhnO2NAJxT7zHaWTTNpmATYDwdI+ehZRyM147i2chGDVC1JMZ9ExjoUqEj3yYNUmielytAnuzLMgvKBOrTL6TJFAKReUyHtZQXIXOVKf6s92EmxltW2S9ERfCbkGw2JWjl5wkrfUK/hyx8ysXnTF6qI4fYqnjdhrhRFWSB/wW+n52G/Mi4LUTQjmGp88cW+U7QWKS6t+TXv6mXgw+Wt2YC4jlWgF5v9NbOJjdhjoXKpgkTXzJdM5TPPJpSrShmY/gwUEoo1X8bczfl0kwrI4Lid5Xy0jtKR6Bps6040vX9xXvcnU4RLncScMDdTUea2kV/courfQ15rOuCXM8tT70WmXkPxq2PX1rYpGIWdEYrRgU7nNmTucC2jtDpLQh1GRKFW72Nf1OT4xu55V+xe2ulLYoSktnZRi+emS8LNOMonLlyWLIr9QO/53yn14qqEAlPRDfaZDSIOgzsW9FLmezdFa3+TUVY4kNRRyfSshQH5ImGH1pYGhk1TKJI3VGWgcyg7u3Xki9XxmUYCK2OjSFwGhcMumZLiI7d7rTjoQkI0cgzpmf+yfw=="
+  #   database: "AgArztVZ4W2MztQdU88daATX9mO1SVo7HkNqkhrRGuG7UQhCLmi6mqceUcZy+Pv2ioIlwefzhfatcEbCUWRBg/DxqGBVuXBzGWaSF1lVbG0ZaQvCEuqefjiOr9AknVEjyt+g7a1Gee+tFaSqfuWGt1WcsA2HhlN/54FOQ7U7AFxycNiewKmAicIFSx/AwHLe5aOItRfwZ1xzwhdiMtvlvPRwgABVmG9/JTg148GbTaJeP69Sk4U/ejKdayXYeW9VHPL99IMb9uhX2FGUS5C1dqBFSzH/jlDIa8SnskSnj6RhkexnH8ig9GyyA/+pGEO9ao/Yh1/4FL9v44Qhs5IETRyLTWmYWcSoHRv4sEEMyudGxFzx3fN2W3iuNFxxGG2f51VFoDFwyiO5guzn4IzmuO+QdmZztn8XHB/iVyHFmgPV/3DI5nXUWXPdqWbZrtxYsBeipFBXrh3TJzO5nQeRXSzl9Zx7OSzRIdlweJ8SARmmE32UbLD89f9i3TC9tuvtmCNTlKIiM6E3jHeG/JeIWu4OUgeqcHVZS480rxqYdCqyOYmsfhcQpLdlBM9PSdxNdmDsnS8xR6aJgCQ+LVL48PqKjUm5bl7BtOlO6Pj27jWBFBu3pvxrDKANCfGKNLtIkbmtTPayBCbqxOBP0thmomoVU6T81fzUpyKF6rOqkkLSX5z8E8IJ4H8RjFUFULnIY2aOx2NwNYVUYQ=="
+  #   serviceName: "AgA8krj7FXxry4DJyWhsqglf5VH4AQg+ngaXThCVWCW6pOEK1siFkXXscRmLg3FvkJt7fVpOZZaLJx/oO5Fc/SMBvICukLyB0CFY+9dmI9vVNPxbdN0G3z3FwoitUtiRRkbWVi6HcwqgWBGsqTCoJ3tTwbXGZEsKDWl9sV7pyVNHZmjEjwMSoRs22XplDMtD4Lfb2ydi/p01sb4YRA6vilYsb2UZZcz+ItU5VJnZFR6Q3WgjUHn7rtM8IijLtD0TwGdJduSv8X3ZbdCNHqSqhU9JK7kmCERmLclNqRRd9ArXNIQMlmSni+QnLKbUxPieZE9pTFH99rxoXeqsz9uE83883vpIELFXOa2qNyLtI/WNcxxKa3iY2B8M7dVwWTG4u6HQFDVPc9v5LQy+ZsqiTwImyUx9BOZfgvaGPfjc7va+SkKOCmcTsQxOSDJ1hzXrkOipQ6FDqOsibAAOgWK/fgRBl9rs1f10ZG7ZxawjzdpDVc64M0qUvg+A9m8kTRVJnaYoVEbAaVx0c/8vsWyLNdSRRxNdVTApFIZHFYoz77uxWx91ojzaAY8UeNHBUf7tbbT6qjC034HB5+ln6wIEyBuhDzK7tJiIRk5JOW+6q9yY+EUP+HvXt2VE9qijBCzozAsYVFqBJu9naZ2YwXNYCnD2yS9BazViISUgA8MfTr7CNf3aj9Ddvqo0WCHV6e37s5iapCX6FvezNvnyb0Tee7034UWf"
+
+  service:
+    type: ClusterIP
+    port: 3306
+    name: beeshoes-db-service
+
+  # Single replica for development
+  replicaCount: 1
+  serviceName: beeshoes-db-service
+  containerPort: 3306
+
+  # Minimal resources for development
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+
+  # Small persistent storage for development
+  persistence:
+    enabled: true
+    size: 500Mi # Smaller for dev
+    storageClass: ""
+    accessModes:
+    - ReadWriteOnce
+    mountPath: /var/lib/mysql
+
+  extraFlags: "--bind-address=0.0.0.0"
+
+  livenessProbe:
+    exec:
+      command:
+      - /bin/sh
+      - -c
+      - /opt/bitnami/mariadb/bin/mysqladmin ping -h localhost -u beeshoes -p"$MARIADB_PASSWORD"
+    initialDelaySeconds: 30
+    periodSeconds: 15
+    timeoutSeconds: 5
+
+  readinessProbe:
+    exec:
+      command:
+      - /bin/sh
+      - -c
+      - /opt/bitnami/mariadb/bin/mysqladmin ping -h localhost -u beeshoes -p"$MARIADB_PASSWORD"
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+
+  podAnnotations: {}
+  podLabels:
+    environment: development
+
+  # ==============================================
+  # DATABASE INITIALIZATION JOB - DEV
+  # ==============================================
+  dbInit:
+    enabled: true
+
+    image:
+      repository: beeshoes
+      tag: "db-init-v1.0.0"
+      pullPolicy: Always
+
+    # Development job configuration
+    backoffLimit: 5 # More retry attempts for dev
+    ttlSecondsAfterFinished: 7200 # Keep job for 2 hours for debugging
+    activeDeadlineSeconds: 1800 # 30 minutes timeout
+    restartPolicy: OnFailure
+
+    # Helm hook configuration
+    hookWeight: "1"
+    hookDeletePolicy: "before-hook-creation"
+
+    # Development resources (minimal)
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+
+    # Development probe configuration
+    livenessProbe:
+      enabled: false # Disable for init job
+
+    readinessProbe:
+      enabled: false # Disable for init job
