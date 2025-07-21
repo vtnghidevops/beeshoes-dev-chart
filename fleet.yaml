@@ -2,7 +2,7 @@ namespace: beeshoes-dev
 
 helm:
   releaseName: beeshoes-app-dev
-  chart: ""
+  chart: ./
   version: 0.1.0
   timeoutSeconds: 300
   valuesFiles:
